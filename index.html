@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#1677ff">
+<title>مساعد المخبر - الأنابيب والتحاليل</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#182230;font-family:Arial,"Noto Sans Arabic",sans-serif}.wrap{max-width:820px;margin:auto;padding:12px}header{background:#1677ff;color:#fff;border-radius:18px;padding:18px 16px;margin-bottom:12px}header h1{margin:0 0 6px;font-size:24px}header p{margin:0;opacity:.9}.card{background:#fff;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 2px 12px #0000000d}h2{font-size:20px;margin:0 0 12px}button{border:0;border-radius:12px;padding:11px 14px;font-size:15px;cursor:pointer}.primary{background:#1677ff;color:#fff}.gray{background:#e9eef5;color:#182230}.red{background:#e53935;color:#fff}.green{background:#1b9b55;color:#fff}input,select{width:100%;padding:12px;border:1px solid #cdd5df;border-radius:11px;font-size:16px;background:#fff}label{display:block;margin:8px 0 5px;font-weight:bold}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}#reader{width:100%;max-width:520px;margin:12px auto}.status{padding:10px;border-radius:10px;background:#f0f4f8;margin-top:10px}.ok{color:#16803c}.warn{color:#9a5a00}.err{color:#b42318}.pills{display:flex;gap:6px;flex-wrap:wrap}.pill{background:#eaf2ff;color:#145dcc;border-radius:18px;padding:6px 10px}.color-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.color-btn{border:2px solid transparent;border-radius:12px;padding:12px 5px;font-weight:bold}.color-btn.selected{border-color:#111;box-shadow:0 0 0 2px white inset}.c-green{background:#2eaa62;color:#fff}.c-purple{background:#7a4bb7;color:#fff}.c-red{background:#d94b4b;color:#fff}.c-yellow{background:#f2c94c;color:#222}.c-blue{background:#4285e5;color:#fff}.c-gray{background:#777;color:#fff}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#f6f8fb;border-radius:13px;padding:12px;text-align:center}.num{font-size:25px;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px 5px;border-bottom:1px solid #eee;text-align:right}.small{font-size:13px;color:#667085}.hidden{display:none!important}.test{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee}.test input{width:auto}.item{border:1px solid #e3e7ec;border-radius:12px;padding:10px;margin:7px 0}.badge{display:inline-block;border-radius:15px;padding:4px 8px;font-size:12px;color:#fff}.search-result{display:flex;justify-content:space-between;gap:8px;align-items:center}footer{text-align:center;color:#667085;font-size:12px;padding:18px}
+</style></head>
+<body><div class="wrap">
+<header><h1>📋 مساعد المخبر</h1><p>مسح الأنابيب • عدّ التحاليل • إحصائيات يومية وشهرية</p></header>
+<div class="card"><h2>📷 مسح باركود</h2><label>تاريخ العمل</label><input id="workDate" type="date"><div class="row" style="margin-top:8px"><button class="primary" onclick="startScanner()">📷 بدء الكاميرا</button><button class="gray" onclick="stopScanner()">⏹ إيقاف</button><button class="gray" onclick="undoLast()">↩️ إلغاء آخر مسح</button><button class="gray" onclick="document.getElementById('barcodePhoto').click()">📸 مسح من صورة</button></div><input id="barcodePhoto" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanPhoto(event)"><div id="reader"></div><div class="small" style="margin-top:8px">🎯 مخصص لباركود الأنابيب الطويل من نوع <b>Code 128</b>. إذا لم يقرأ بالكاميرا، استخدم «مسح من صورة».</div><div id="scanStatus" class="status">جاهز للمسح.</div><div class="small" style="margin-top:8px">💡 للباركود الطويل على الأنبوب: اجعل الخطوط مستقيمة قدر الإمكان، قرّب الهاتف، وتجنب انعكاس الضوء. إذا لم يقرأه مباشرة استخدم «📸 مسح من صورة».</div></div>
+<div id="newTubeCard" class="card hidden"><h2>🧪 أنبوب جديد</h2><div class="small">الباركود: <b id="newBarcode"></b></div><label>لون الأنبوب</label><div class="color-grid" id="colorGrid"></div><label>التحاليل الموجودة في هذا الأنبوب</label><div id="newTests"></div><div class="row" style="margin-top:10px"><button class="green" onclick="saveMapping()">حفظ وربط الباركود</button><button class="gray" onclick="cancelNewTube()">إلغاء</button></div></div>
+<div class="card"><h2>📊 إجمالي اليوم</h2><div class="stats"><div class="stat"><div class="num" id="tubeTotal">0</div>Tube</div><div class="stat"><div class="num" id="testTotal">0</div>تحليل</div><div class="stat"><div class="num" id="uniqueTotal">0</div>نوع تحليل</div></div><div id="todaySummary" style="margin-top:12px"></div></div>
+<div class="card"><h2>🗑️ آخر الأنابيب</h2><div id="recent"></div></div>
+<div class="card"><h2>🔎 البحث عن Tube</h2><input id="searchBarcode" placeholder="أدخل أو الصق رقم الباركود" oninput="searchTube()"><div id="searchResult"></div></div>
+<div class="card"><h2>✏️ قاعدة الباركود</h2><p class="small">بعد ربط باركود بنوع أنبوب وتحاليل، سيتم التعرف عليه تلقائياً في المسحات القادمة.</p><div id="mappings"></div></div>
+<div class="card"><h2>🧪 أنواع الأنابيب</h2><div id="tubeTypeList"></div><div class="row"><input id="newTubeType" placeholder="مثال: Serum"><select id="newTubeColor"><option value="green">🟢 أخضر</option><option value="purple">🟣 بنفسجي</option><option value="red">🔴 أحمر</option><option value="yellow">🟡 أصفر</option><option value="blue">🔵 أزرق</option><option value="gray">⚪ رمادي</option></select><button class="primary" onclick="addTubeType()">إضافة</button></div></div>
+<div class="card"><h2>🔬 التحاليل</h2><div class="row"><input id="newTestName" placeholder="مثال: Glycémie"><button class="primary" onclick="addTest()">إضافة تحليل</button></div><div id="testList"></div></div>
+<div class="card"><h2>📅 إحصائيات شهرية</h2><label>الشهر</label><input id="monthPick" type="month"><div id="monthStats"></div></div>
+<div class="card"><h2>📄 التقارير والبيانات</h2><div class="row"><button class="primary" onclick="exportCSV()">⬇️ تقرير اليوم CSV</button><button class="gray" onclick="exportMonthCSV()">⬇️ تقرير الشهر CSV</button></div><div class="row" style="margin-top:6px"><button class="gray" onclick="downloadBackup()">💾 نسخة احتياطية</button><button class="gray" onclick="restoreBackup()">♻️ استعادة نسخة</button></div><input id="backupFile" type="file" accept=".json" class="hidden" onchange="doRestore(event)"><button class="red" style="margin-top:8px" onclick="deleteDay()">حذف بيانات اليوم</button></div>
+<footer>البيانات تُحفظ محلياً في هذا المتصفح. خذ نسخة احتياطية قبل حذف بيانات المتصفح.</footer></div>
+<script>
+const DEFAULT_TESTS=["Glycémie","Urée","Créatinine","HbA1c","Cholestérol total","HDL","LDL","Triglycérides","ASAT","ALAT","CRP","NFS"];
+const DEFAULT_TYPES=[{name:"EDTA",color:"purple"},{name:"Serum",color:"red"},{name:"Fluorure",color:"gray"},{name:"Citrate",color:"blue"},{name:"Héparine",color:"green"}];
+let tests=load("tests",DEFAULT_TESTS),types=load("tubeTypes",DEFAULT_TYPES),mappings=load("barcodeMappings",{}),records=load("tubeRecords",[]),scanner=null,locked=false,pendingCode=null,pendingColor="red",editing=false;
+function load(k,d){try{let x=JSON.parse(localStorage.getItem(k));return x??d}catch(e){return d}}function save(){localStorage.setItem("tests",JSON.stringify(tests));localStorage.setItem("tubeTypes",JSON.stringify(types));localStorage.setItem("barcodeMappings",JSON.stringify(mappings));localStorage.setItem("tubeRecords",JSON.stringify(records))}function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}function today(){return workDate.value}function month(){return monthPick.value}function colorName(c){return({green:"أخضر",purple:"بنفسجي",red:"أحمر",yellow:"أصفر",blue:"أزرق",gray:"رمادي"})[c]||c}function badge(c){return `<span class="badge c-${c}">${colorName(c)}</span>`}
+function render(){let r=records.filter(x=>x.date===today()),counts={};r.forEach(x=>(x.tests||[]).forEach(t=>counts[t]=(counts[t]||0)+1));tubeTotal.textContent=r.length;testTotal.textContent=r.reduce((s,x)=>s+(x.tests||[]).length,0);uniqueTotal.textContent=Object.keys(counts).length;todaySummary.innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span class="pill">${esc(t)}: <b>${n}</b></span>`).join("")||'<span class="small">لا توجد بيانات اليوم.</span>';recent.innerHTML=r.slice().reverse().slice(0,40).map(x=>`<div class="item"><b>${esc(x.code)}</b> ${badge(x.color||"gray")} <span class="small">${esc(x.time)}</span><br><span class="small">${(x.tests||[]).map(esc).join("، ")}</span><button class="red" style="float:left;padding:6px 9px" onclick="deleteRecord('${x.id}')">حذف</button></div>`).join("")||'<div class="small">لا توجد أنابيب.</div>';mappingsDiv();testList.innerHTML=tests.map(t=>`<span class="pill">${esc(t)} <button style="padding:1px 6px;margin:0" onclick="removeTest('${encodeURIComponent(t)}')">×</button></span>`).join("");tubeTypeList.innerHTML=types.map((t,i)=>`<div class="item">${badge(t.color)} <b>${esc(t.name)}</b><button class="red" style="float:left;padding:5px 8px" onclick="removeType(${i})">حذف</button></div>`).join("");renderMonth();searchTube()}
+function mappingsDiv(){mappingsEl.innerHTML=Object.keys(mappings).length?Object.entries(mappings).map(([code,m])=>`<div class="item"><div><b>${esc(code)}</b> ${badge(m.color||"gray")} ${esc(m.type||"")}</div><div class="small">${(m.tests||[]).map(esc).join("، ")}</div><button class="gray" style="margin-top:7px" onclick="editMapping('${encodeURIComponent(code)}')">✏️ تعديل</button><button class="red" style="margin-top:7px" onclick="deleteMapping('${encodeURIComponent(code)}')">حذف الربط</button></div>`).join(""):'<div class="small">لا توجد باركودات مرتبطة بعد.</div>'}
+function renderMonth(){let r=records.filter(x=>x.date.startsWith(month())),counts={};r.forEach(x=>(x.tests||[]).forEach(t=>counts[t]=(counts[t]||0)+1));monthStats.innerHTML=`<p><b>${r.length}</b> Tube — <b>${r.reduce((s,x)=>s+(x.tests||[]).length,0)}</b> تحليل</p>`+(Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<div class="item">${esc(t)} <b style="float:left">${n}</b></div>`).join("")||'<span class="small">لا توجد بيانات.</span>')}
+function checks(selected=[]){return tests.map((t,i)=>`<label class="test"><input type="checkbox" id="pt${i}" value="${esc(t)}" ${selected.includes(t)?"checked":""}>${esc(t)}</label>`).join("")}function colors(sel="red"){pendingColor=sel;return["green","purple","red","yellow","blue","gray"].map(c=>`<button class="color-btn c-${c} ${c===sel?"selected":""}" onclick="chooseColor('${c}')">${colorName(c)}</button>`).join("")}function chooseColor(c){pendingColor=c;colorGrid.innerHTML=colors(c)}function selectedTests(){return[...document.querySelectorAll("#newTests input:checked")].map(x=>x.value)}
+async function startScanner(){
+  if(scanner)return;
+  if(typeof Html5Qrcode==="undefined"){
+    setStatus("لم يتم تحميل أداة قراءة الباركود. افتح الصفحة مع الإنترنت ثم أعد المحاولة.","err");
+    return;
+  }
+
+  scanner=new Html5Qrcode("reader",{
+    verbose:false,
+    formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128]
+  });
+
+  setStatus("📷 ابحث عن الخطوط السوداء للباركود... قرّب الهاتف وثبّت الأنبوب.","warn");
+
+  try{
+    await scanner.start(
+      {facingMode:{ideal:"environment"}},
+      {
+        fps:15,
+        aspectRatio:16/9,
+        disableFlip:true,
+        qrbox:(w,h)=>({
+          width:Math.max(300,Math.min(Math.floor(w*0.96),w-10)),
+          height:Math.max(90,Math.min(Math.floor(h*0.28),h-10))
+        }),
+        videoConstraints:{
+          facingMode:{ideal:"environment"},
+          width:{ideal:1920},
+          height:{ideal:1080},
+          frameRate:{ideal:30,max:30}
+        }
+      },
+      onScan,
+      ()=>{}
+    );
+
+    setStatus("✓ الكاميرا تعمل — ضع كامل الباركود داخل الإطار.","ok");
+  }catch(e){
+    console.error(e);
+    setStatus("تعذر تشغيل الكاميرا. تأكد من HTTPS والسماح بالكاميرا.","err");
+    scanner=null;
+  }
+}
+
+if(scanner)return;
+if(typeof Html5Qrcode==="undefined"){
+setStatus("لم يتم تحميل أداة القراءة. افتح الصفحة مع الإنترنت ثم أعد المحاولة.","err");return;
+}
+scanner=new Html5Qrcode("reader");
+setStatus("وجّه الكاميرا إلى الخطوط السوداء واجعل الباركود كبيراً داخل الإطار...");
+try{
+const formats=[
+Html5QrcodeSupportedFormats.CODE_128,
+Html5QrcodeSupportedFormats.CODE_39,
+Html5QrcodeSupportedFormats.CODE_93,
+Html5QrcodeSupportedFormats.CODABAR,
+Html5QrcodeSupportedFormats.ITF,
+Html5QrcodeSupportedFormats.EAN_13,
+Html5QrcodeSupportedFormats.EAN_8,
+Html5QrcodeSupportedFormats.UPC_A,
+Html5QrcodeSupportedFormats.UPC_E,
+Html5QrcodeSupportedFormats.DATA_MATRIX,
+Html5QrcodeSupportedFormats.QR_CODE
+];
+const config={
+fps:15,
+aspectRatio:16/9,
+disableFlip:true,
+qrbox:(vw,vh)=>({
+width:Math.max(260,Math.min(Math.floor(vw*0.94),720)),
+height:Math.max(100,Math.min(Math.floor(vh*0.30),230))
+}),
+formatsToSupport:formats,
+videoConstraints:{
+facingMode:{ideal:"environment"},
+width:{ideal:1920},
+height:{ideal:1080},
+frameRate:{ideal:30,max:30}
+}
+};
+await scanner.start(config,onScan,()=>{});
+setStatus("الكاميرا تعمل — قرّب الباركود حتى تملأ الخطوط معظم الإطار.","ok");
+}catch(e){
+console.error(e);
+try{await scanner.clear()}catch(_){}
+scanner=null;
+setStatus("تعذر تشغيل الكاميرا. تأكد من صلاحية الكاميرا والإنترنت ثم أعد المحاولة.","err");
+}
+}
+async function scanPhoto(ev){
+const file=ev.target.files&&ev.target.files[0];
+ev.target.value="";
+if(!file)return;
+if(typeof Html5Qrcode==="undefined"){
+setStatus("أداة القراءة غير محملة. افتح الصفحة مع الإنترنت.","err");return;
+}
+let temp=null;
+try{
+setStatus("جاري تحليل الصورة...","warn");
+temp=new Html5Qrcode("reader");
+const code=await temp.scanFile(file,true);
+onScan(code);
+setStatus("✓ تم العثور على الباركود: "+code,"ok");
+}catch(e){
+setStatus("لم أستطع قراءة الباركود من الصورة. صوّر الباركود قريباً وواضحاً وبإضاءة جيدة.","err");
+}finally{
+try{if(temp)await temp.clear()}catch(_){}
+}
+}
+async function stopScanner(){if(scanner){try{await scanner.stop()}catch(e){}try{scanner.clear()}catch(e){}scanner=null;setStatus("تم إيقاف الكاميرا.")}}function setStatus(t,c=""){scanStatus.className="status "+c;scanStatus.textContent=t}function onScan(code){if(locked)return;locked=true;setTimeout(()=>locked=false,1300);code=String(code).trim();if(!code)return;if(mappings[code]){addRecord(code,mappings[code]);setStatus("✓ تم تسجيل الأنبوب تلقائياً.","ok")}else{openNewTube(code)}}
+function openNewTube(code){pendingCode=code;editing=false;newBarcode.textContent=code;colorGrid.innerHTML=colors("red");newTests.innerHTML=checks();newTubeCard.classList.remove("hidden");setStatus("باركود جديد: اختر اللون والتحاليل ثم احفظ.","warn")}function saveMapping(){let ts=selectedTests();if(!ts.length){alert("اختر تحليلاً واحداً على الأقل.");return}let type=types.find(x=>x.color===pendingColor)?.name||colorName(pendingColor);mappings[pendingCode]={color:pendingColor,type,tests:ts};if(!editing)addRecord(pendingCode,mappings[pendingCode]);editing=false;cancelNewTube();save();render();setStatus(editing?"تم التعديل.":"تم حفظ الأنبوب.","ok")}function cancelNewTube(){pendingCode=null;editing=false;newTubeCard.classList.add("hidden")}function addRecord(code,map){let d=today(),now=new Date();records.push({id:Date.now()+"-"+Math.random().toString(16).slice(2),date:d,time:now.toLocaleTimeString("ar-DZ",{hour:"2-digit",minute:"2-digit"}),code,color:map.color||"gray",type:map.type||"",tests:[...(map.tests||[])]});save();render()}function undoLast(){let a=records.map((x,i)=>({x,i})).filter(o=>o.x.date===today()).pop();if(!a){alert("لا يوجد مسح يمكن إلغاؤه.");return}if(confirm("إلغاء آخر Tube تم تسجيله؟")){records.splice(a.i,1);save();render();setStatus("تم إلغاء آخر مسح.","ok")}}function deleteRecord(id){if(confirm("حذف هذا الأنبوب؟")){records=records.filter(x=>x.id!==id);save();render()}}
+function editMapping(enc){let code=decodeURIComponent(enc),m=mappings[code];pendingCode=code;editing=true;newBarcode.textContent=code;colorGrid.innerHTML=colors(m.color||"red");newTests.innerHTML=checks(m.tests||[]);newTubeCard.classList.remove("hidden");scrollTo({top:newTubeCard.offsetTop-10,behavior:"smooth"})}function deleteMapping(enc){let code=decodeURIComponent(enc);if(confirm("حذف ربط هذا الباركود؟")){delete mappings[code];save();render()}}
+function searchTube(){let q=searchBarcode.value.trim();if(!q){searchResult.innerHTML="";return}let rs=records.filter(x=>x.code.includes(q)).slice().reverse().slice(0,20),m=mappings[q];searchResult.innerHTML=(m?`<div class="item"><b>الربط:</b> ${badge(m.color||"gray")} ${esc(m.type||"")}<br>${m.tests.map(esc).join("، ")}</div>`:"")+(rs.map(x=>`<div class="item search-result"><span><b>${esc(x.code)}</b><br><span class="small">${esc(x.date)} ${esc(x.time)}</span></span>${badge(x.color||"gray")}</div>`).join("")||'<div class="small">لا توجد نتائج.</div>')}function addTest(){let v=newTestName.value.trim();if(!v)return;if(!tests.includes(v))tests.push(v);newTestName.value="";save();render()}function removeTest(e){let t=decodeURIComponent(e);if(confirm("حذف "+t+" من قائمة التحاليل؟")){tests=tests.filter(x=>x!==t);save();render()}}function addTubeType(){let n=newTubeType.value.trim(),c=newTubeColor.value;if(!n)return;if(!types.some(x=>x.name===n))types.push({name:n,color:c});newTubeType.value="";save();render()}function removeType(i){if(confirm("حذف نوع الأنبوب؟")){types.splice(i,1);save();render()}}
+function csvFor(rs){let s="Date,Time,Barcode,TubeType,TubeColor,Tests\n";rs.forEach(x=>s+=`"${x.date}","${x.time}","${x.code}","${x.type||""}","${x.color||""}","${(x.tests||[]).join(" | ")}"\n`);return"\ufeff"+s}function downloadText(n,t,type){let b=new Blob([t],{type:type||"text/plain;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}function exportCSV(){downloadText("rapport_"+today()+".csv",csvFor(records.filter(x=>x.date===today())),"text/csv;charset=utf-8")}function exportMonthCSV(){downloadText("rapport_"+month()+".csv",csvFor(records.filter(x=>x.date.startsWith(month()))),"text/csv;charset=utf-8")}function downloadBackup(){downloadText("backup_tube_scanner.json",JSON.stringify({version:1,exportedAt:new Date().toISOString(),tests,types,mappings,records},null,2),"application/json;charset=utf-8")}function restoreBackup(){backupFile.click()}function doRestore(e){let f=e.target.files[0];if(!f)return;let rd=new FileReader();rd.onload=()=>{try{let d=JSON.parse(rd.result);if(!d.records)throw Error();tests=d.tests||tests;types=d.types||types;mappings=d.mappings||{};records=d.records||[];save();render();alert("تمت استعادة النسخة.")}catch(err){alert("ملف النسخة غير صالح.")}};rd.readAsText(f);e.target.value=""}function deleteDay(){if(confirm("حذف جميع بيانات اليوم "+today()+"؟")){records=records.filter(x=>x.date!==today());save();render()}}
+workDate.value=new Date().toISOString().slice(0,10);monthPick.value=new Date().toISOString().slice(0,7);workDate.addEventListener("change",render);monthPick.addEventListener("change",render);const mappingsEl=document.getElementById("mappings");render();
+</script></body></html>
